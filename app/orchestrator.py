@@ -146,6 +146,13 @@ class Autopilot:
     def _dispatch(self, remediation_id: int, issue: dict, decision: Any) -> None:
         number = issue["number"]
 
+        # Take the row out of `queued` atomically. If another worker got there first this
+        # returns False and we simply do nothing - that worker owns the dispatch.
+        if not db.try_lock_for_dispatch(remediation_id):
+            db.log_event(remediation_id, "dispatch_race",
+                         f"issue #{number} is already being dispatched by another worker")
+            return
+
         if db.count_active() > settings.max_concurrent_sessions:
             db.log_event(remediation_id, "throttled",
                          f"concurrency cap ({settings.max_concurrent_sessions}) reached; "

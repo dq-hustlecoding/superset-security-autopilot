@@ -122,6 +122,33 @@ def claim_remediation(
             return None
 
 
+def try_lock_for_dispatch(remediation_id: int) -> bool:
+    """Atomically move a remediation out of `queued` so only one worker can dispatch it.
+
+    Reading the queue and then dispatching is a check-then-act race: two reconcilers (or a
+    webhook racing the background loop) can both see the same row as `queued` and both open a
+    Devin session for it. That costs twice and produces two competing PRs on one issue.
+
+    A conditional UPDATE makes the transition the lock. SQLite serialises the write, so
+    exactly one caller sees rowcount == 1 and earns the right to dispatch.
+    """
+    with db() as conn:
+        cur = conn.execute(
+            "UPDATE remediations SET status = 'dispatching' WHERE id = ? AND status = 'queued'",
+            (remediation_id,),
+        )
+        return cur.rowcount == 1
+
+
+def release_dispatch_lock(remediation_id: int) -> None:
+    """Put a row back on the queue when dispatch was declined (throttle, budget, error)."""
+    with db() as conn:
+        conn.execute(
+            "UPDATE remediations SET status = 'queued' WHERE id = ? AND status = 'dispatching'",
+            (remediation_id,),
+        )
+
+
 def update(remediation_id: int, **fields: Any) -> None:
     if not fields:
         return
