@@ -1,0 +1,18 @@
+{
+  "_source": "Devin > Settings > Usage & Limits > Usage history, read 2026-08-29.",
+  "_why_manual": "The v3 API reports acus_consumed = 0.0 for every session on this plan, and there is no billing/usage endpoint (all 404). Per-session cost is only exposed in the dashboard UI, so it is recorded here rather than silently rendered as zero.",
+  "currency": "USD",
+  "by_issue": {
+    "1":  4.50,
+    "2":  4.72,
+    "3":  3.40,
+    "5":  6.11,
+    "6":  5.19,
+    "7":  4.86,
+    "8":  3.31,
+    "18": 3.49
+  },
+  "wasted": {
+    "issue_7_duplicate_session": 3.70
+  }
+}

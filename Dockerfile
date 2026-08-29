@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 COPY scanner ./scanner
 COPY demo ./demo
+COPY costs ./costs
 
 RUN mkdir -p /srv/data
 VOLUME ["/srv/data"]

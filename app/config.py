@@ -87,6 +87,10 @@ class Settings(BaseSettings):
 
     db_path: str = "data/autopilot.db"
 
+    # The v3 API reports acus_consumed = 0.0 and exposes no billing endpoint, so observed
+    # spend is loaded from a file exported out of Settings > Usage & Limits > Usage history.
+    # Measured cost beats a modelled one, even when the measurement has to be pasted in.
+    session_costs_path: str = "costs/session-costs.json"
 
     # Cost model used for the "engineer hours saved" panel on the dashboard.
     # Deliberately conservative and configurable so a customer can plug in their own numbers.
