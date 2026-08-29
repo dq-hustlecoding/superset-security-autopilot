@@ -1,0 +1,23 @@
+services:
+  orchestrator:
+    build: .
+    image: superset-security-autopilot
+    container_name: autopilot
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/srv/data
+    restart: unless-stopped
+
+  # One-shot scanner. Produces the events that drive the orchestrator.
+  #   docker compose run --rm scanner
+  scanner:
+    build: .
+    image: superset-security-autopilot
+    env_file: .env
+    volumes:
+      - ./data:/srv/data
+      - ${SUPERSET_CHECKOUT:-./superset-src}:/target:ro
+    entrypoint: ["python", "scanner/scan.py", "--repo-path", "/target"]
+    profiles: ["tools"]

@@ -1,0 +1,12 @@
+.env
+data/
+__pycache__/
+*.pyc
+.venv/
+superset-src/
+bandit-report.json
+
+# presentation scripts stay local — not a deliverable
+demo/LOOM_SCRIPT.md
+demo/SCRIPT_TIGHT.md
+demo/SCRIPT_4MIN.md

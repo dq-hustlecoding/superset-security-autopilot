@@ -1,0 +1,44 @@
+# Installed into the Apache Superset FORK at .github/workflows/security-scan.yml
+#
+# This is the event source of the autopilot: it scans the repository and files
+# deduplicated, machine-readable issues labeled `devin-autofix`. Labeling the issue is
+# what fires the webhook that the orchestrator listens to.
+name: Nightly security scan
+
+on:
+  schedule:
+    - cron: "0 3 * * *"      # nightly backstop
+  push:
+    paths:                   # re-scan as soon as dependencies change
+      - "requirements/**"
+      - "pyproject.toml"
+  workflow_dispatch:         # manual trigger, used for the live demo
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install scanner dependencies
+        # bandit is pinned: 1.8.x lacks B704, which would silently change the finding set.
+        run: pip install --quiet httpx bandit==1.9.4
+
+      - name: Fetch the autopilot scanner
+        run: |
+          curl -fsSL -o scan.py \
+            "https://raw.githubusercontent.com/${{ github.repository_owner }}/superset-security-autopilot/main/scanner/scan.py"
+
+      - name: Scan and file issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+        run: python scan.py --repo-path . --github-repo "$GITHUB_REPO"

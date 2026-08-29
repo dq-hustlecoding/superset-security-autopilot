@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Superset Security Autopilot</title>
+<meta http-equiv="refresh" content="15">
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141922; --panel2:#1b212c; --line:#252c39;
+    --text:#e6e9ef; --muted:#8b95a7; --ok:#37d67a; --warn:#f5b544; --bad:#f2545b; --acc:#5b8cff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.5 ui-sans-serif,-apple-system,"SF Pro Text",Inter,system-ui,sans-serif}
+  .wrap{max-width:1280px;margin:0 auto;padding:28px 24px 60px}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:6px}
+  h1{font-size:20px;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+  .sub code{background:var(--panel2);padding:2px 6px;border-radius:5px;color:var(--acc)}
+  .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);
+       box-shadow:0 0 0 0 rgba(55,214,122,.6);animation:p 2s infinite}
+  @keyframes p{70%{box-shadow:0 0 0 7px rgba(55,214,122,0)}100%{box-shadow:0 0 0 0 rgba(55,214,122,0)}}
+
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+     margin:32px 0 12px;font-weight:600}
+  .grid{display:grid;gap:12px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+  .v{font-size:28px;font-weight:600;margin-top:6px;letter-spacing:-.02em}
+  .v small{font-size:14px;color:var(--muted);font-weight:400}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .acc{color:var(--acc)}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);
+        border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+     text-align:left;padding:10px 12px;background:var(--panel2);font-weight:600}
+  td{padding:11px 12px;border-top:1px solid var(--line);vertical-align:top}
+  td.small{font-size:12.5px;color:var(--muted);max-width:380px}
+  a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;
+        letter-spacing:.02em;border:1px solid transparent;white-space:nowrap}
+  .s-succeeded{background:rgba(55,214,122,.14);color:var(--ok);border-color:rgba(55,214,122,.3)}
+  .s-running,.s-dispatched{background:rgba(91,140,255,.14);color:var(--acc);border-color:rgba(91,140,255,.3)}
+  .s-queued{background:rgba(139,149,167,.14);color:var(--muted);border-color:rgba(139,149,167,.3)}
+  .s-skipped{background:rgba(245,181,68,.14);color:var(--warn);border-color:rgba(245,181,68,.3)}
+  .s-failed,.s-timed_out{background:rgba(242,84,91,.14);color:var(--bad);border-color:rgba(242,84,91,.3)}
+  .sev-HIGH{color:var(--bad);font-weight:600}
+  .sev-MODERATE,.sev-MEDIUM{color:var(--warn);font-weight:600}
+  .sev-LOW{color:var(--muted)}
+
+  .bar{height:7px;border-radius:4px;background:var(--panel2);overflow:hidden;margin-top:10px;display:flex}
+  .bar i{display:block;height:100%}
+  .log{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+       padding:12px 14px;max-height:300px;overflow:auto;
+       font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .log .t{color:var(--muted)}
+  .lv-error{color:var(--bad)} .lv-warning{color:var(--warn)}
+  .empty{padding:26px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Superset Security Autopilot</h1>
+    <span class="live"><span class="dot"></span>live · refreshes every 15s</span>
+  </header>
+  {% if settings.dispatch_paused %}
+  <div style="background:rgba(245,181,68,.1);border:1px solid rgba(245,181,68,.35);
+              border-radius:10px;padding:11px 15px;margin-bottom:14px;font-size:13.5px;
+              color:#f5d99a">
+    <b style="color:#fff">Dispatch paused by operator.</b>
+    In-flight sessions keep running and are still polled to completion; no new session will be
+    started until the switch is turned off.
+  </div>
+  {% endif %}
+  <div class="sub">
+    Autonomous remediation of security debt in <code>{{ m.repo or 'unconfigured' }}</code>
+    · concurrency cap {{ m.throughput.concurrency_cap }}
+    · {{ m.cost.acu_ceiling_per_session }} ACU ceiling per session
+    {% if settings.dry_run %}· <span class="warn">DRY RUN</span>{% endif %}
+  </div>
+
+  <h2>Is it working?</h2>
+  <div class="grid g4">
+    <div class="card">
+      <div class="k">Findings remediated</div>
+      <div class="v ok">{{ m.totals.succeeded }} <small>/ {{ m.totals.findings_ingested }} ingested</small></div>
+      {% set t = m.totals.findings_ingested or 1 %}
+      <div class="bar">
+        <i class="ok" style="background:var(--ok);width:{{ (100*m.totals.succeeded/t)|round(1) }}%"></i>
+        <i style="background:var(--acc);width:{{ (100*m.totals.active/t)|round(1) }}%"></i>
+        <i style="background:var(--warn);width:{{ (100*m.totals.skipped_to_human/t)|round(1) }}%"></i>
+        <i style="background:var(--bad);width:{{ (100*m.totals.failed/t)|round(1) }}%"></i>
+      </div>
+      <div class="hint">green fixed · blue in flight · amber escalated · red failed</div>
+    </div>
+    <div class="card">
+      <div class="k">Success rate</div>
+      <div class="v {{ 'ok' if m.rates.success_rate_pct >= 70 else 'warn' }}">{{ m.rates.success_rate_pct }}<small>%</small></div>
+      <div class="hint">of remediations Devin actually attempted</div>
+    </div>
+    <div class="card">
+      <div class="k">Pull requests opened</div>
+      <div class="v acc">{{ m.totals.pull_requests_opened }}</div>
+      <div class="hint">reviewable output, not just tickets moved</div>
+    </div>
+    <div class="card">
+      <div class="k">Mean time to remediation</div>
+      <div class="v">{% if m.throughput.mean_time_to_remediation_minutes %}{{ m.throughput.mean_time_to_remediation_minutes }}<small> min</small>{% else %}—{% endif %}</div>
+      <div class="hint">finding filed → PR ready for review</div>
+    </div>
+  </div>
+
+  <h2>What is it costing me?</h2>
+  <div class="grid g4">
+    <div class="card">
+      <div class="k">Devin sessions in flight</div>
+      <div class="v acc">{{ m.throughput.in_flight }} <small>/ {{ m.throughput.concurrency_cap }} cap</small></div>
+      <div class="hint">hard concurrency ceiling, enforced before dispatch</div>
+    </div>
+    <div class="card">
+      <div class="k">Cost per remediated finding</div>
+      {% if m.cost.spend_observed %}
+      <div class="v ok">${{ '%.2f'|format(m.cost.cost_per_remediation_usd) }}</div>
+      <div class="hint">${{ '%.2f'|format(m.cost.devin_spend_usd) }} total spend ÷
+        {{ m.totals.succeeded }} remediated · fully loaded, including
+        ${{ '%.2f'|format(m.cost.devin_spend_wasted_usd) }} wasted on a duplicate dispatch</div>
+      {% else %}
+      <div class="v" style="font-size:18px;color:var(--muted)">not available</div>
+      <div class="hint">no observed spend recorded</div>
+      {% endif %}
+    </div>
+    <div class="card">
+      <div class="k">vs. doing it by hand</div>
+      <div class="v ok">{{ (m.cost.modelled_human_cost_per_finding_usd / m.cost.cost_per_remediation_usd)|round|int if m.cost.cost_per_remediation_usd else '—' }}×<small> cheaper</small></div>
+      <div class="hint">${{ '%.2f'|format(m.cost.cost_per_remediation_usd) if m.cost.cost_per_remediation_usd else '—' }} <b>measured</b>
+        vs ${{ '%.0f'|format(m.cost.modelled_human_cost_per_finding_usd) }} <span class="warn">modelled</span>
+        ({{ m.cost.engineer_hours_per_finding_assumption }} h @ ${{ m.cost.engineer_hourly_cost_usd_assumption }}/h)</div>
+    </div>
+    <div class="card">
+      <div class="k">Escalated to a human</div>
+      <div class="v warn">{{ m.totals.skipped_to_human }}</div>
+      <div class="hint">{{ m.rates.human_escalation_pct }}% — triaged out before spending a session</div>
+    </div>
+  </div>
+
+  <div class="grid g3" style="margin-top:12px">
+    <div class="card">
+      <div class="k">Backlog remaining</div>
+      <div class="v">{{ m.totals.queued }}</div>
+      <div class="hint">claimed and triaged, waiting on the {{ m.throughput.daily_session_budget }}-session daily budget</div>
+    </div>
+    <div class="card">
+      <div class="k">Daily session budget</div>
+      <div class="v">{{ m.throughput.daily_session_budget }}<small> / 24h</small></div>
+      <div class="hint">spend is bounded by policy, not by how many findings a scanner reports</div>
+    </div>
+    <div class="card">
+      <div class="k">Autonomy rate</div>
+      <div class="v">{{ m.rates.autonomy_rate_pct }}<small>%</small></div>
+      <div class="hint">share of all ingested findings resolved with no human involvement</div>
+    </div>
+  </div>
+
+  <h2>Remediation queue</h2>
+  <table>
+    <tr>
+      <th>Issue</th><th>Severity</th><th>Playbook</th><th>Status</th>
+      <th>Outcome</th><th>Devin session</th><th>Pull request</th><th>Took</th><th>Cost</th><th>Notes</th>
+    </tr>
+    {% for r in rows %}
+    <tr>
+      <td><a href="{{ r.issue_url }}" target="_blank">#{{ r.issue_number }}</a><br>
+          <span class="small">{{ r.issue_title[:64] }}</span></td>
+      <td class="sev-{{ r.severity }}">{{ r.severity }}</td>
+      <td class="small">{{ r.playbook }}</td>
+      <td><span class="pill s-{{ r.status }}">{{ r.status }}</span></td>
+      <td class="small">{{ r.outcome or '—' }}{% if r.confidence %}<br>conf: {{ r.confidence }}{% endif %}</td>
+      <td class="small">{% if r.devin_session_url %}<a href="{{ r.devin_session_url }}" target="_blank">open</a>{% else %}{{ r.devin_session_id or '—' }}{% endif %}</td>
+      <td class="small">{% if r.pr_url %}<a href="{{ r.pr_url }}" target="_blank">PR</a>{% else %}—{% endif %}</td>
+      <td class="small">{{ r.duration_min if r.duration_min is not none else '—' }}{% if r.duration_min is not none %} min{% endif %}</td>
+      <td class="small">{% if r.cost_usd %}${{ '%.2f'|format(r.cost_usd) }}{% else %}—{% endif %}</td>
+      <td class="small">{{ (r.summary or r.skip_reason or r.error or '')[:160] }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="empty">No findings ingested yet. Trigger a scan or POST /api/backfill.</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Control-loop log</h2>
+  <div class="log">
+    {% for e in events %}
+    <div class="lv-{{ e.level }}"><span class="t">{{ e.at | int }}</span>
+      [{{ e.kind }}]{% if e.issue_number %} #{{ e.issue_number }}{% endif %} {{ e.message }}</div>
+    {% else %}
+    <div class="t">no events yet</div>
+    {% endfor %}
+  </div>
+
+</div>
+</body>
+</html>
