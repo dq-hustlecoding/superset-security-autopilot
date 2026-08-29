@@ -119,7 +119,8 @@ def backfill():
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": True, "repo": settings.github_repo, "dry_run": settings.dry_run}
+    return {"ok": True, "repo": settings.github_repo, "dry_run": settings.dry_run,
+            "dispatch_paused": settings.dispatch_paused}
 
 
 @app.get("/api/metrics")

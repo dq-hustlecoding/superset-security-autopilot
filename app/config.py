@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     # the budget, so spend is bounded by policy rather than by the size of the backlog.
     daily_session_budget: int = 6
 
+    # Operator kill switch. Stops new sessions being dispatched while leaving the dashboard,
+    # the poller and every in-flight session untouched. "How do I stop this at 2am without
+    # losing the work already running" is the first question anyone asks about an autonomous
+    # system, so it is a first-class setting rather than a container restart.
+    dispatch_paused: bool = False
 
     # Session-level safety valve: sessions older than this are marked timed_out
     session_timeout_minutes: int = 90

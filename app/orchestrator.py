@@ -160,6 +160,12 @@ class Autopilot:
             db.release_dispatch_lock(remediation_id)
             return
 
+        if settings.dispatch_paused:
+            db.log_event(remediation_id, "dispatch_paused",
+                         "operator kill switch is on; staying queued", level="warning")
+            db.release_dispatch_lock(remediation_id)
+            return
+
         spent = db.count_dispatched_since(time.time() - 86400)
         if spent >= settings.daily_session_budget:
             db.log_event(remediation_id, "budget_exhausted",
@@ -321,6 +327,8 @@ class Autopilot:
         return {"polled": polled, "started": started, "active": db.count_active()}
 
     def _drain_queue(self) -> int:
+        if settings.dispatch_paused:
+            return 0
         started = 0
         queued = sorted(
             db.list_by_status("queued"),
