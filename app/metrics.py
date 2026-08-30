@@ -80,13 +80,17 @@ def summary() -> dict[str, Any]:
 
     costs = _load_costs()
     by_issue = costs.get("by_issue", {})
-    wasted = sum(costs.get("wasted", {}).values())
     productive_spend = sum(by_issue.get(r["issue_number"], 0.0) for r in rows)
+    # Waste is only meaningful against a run that actually happened. Charged to an empty
+    # database it would report spend with no remediation to attribute it to.
+    wasted = sum(costs.get("wasted", {}).values()) if productive_spend else 0.0
     total_spend = round(productive_spend + wasted, 2)
     # Fully loaded: waste from the duplicate-dispatch bug is charged against the result,
     # because that is what the run actually cost.
     cost_per_fix = round(total_spend / succeeded, 2) if (succeeded and total_spend) else None
-    spend_observed = bool(by_issue)
+    # Gated on the derived figure rather than on the cost file, so that every consumer --
+    # the dashboard card and the Prometheus gauge -- is guarded by the number it renders.
+    spend_observed = cost_per_fix is not None
 
     # Modelled, not measured. Driven by ENGINEER_HOURS_PER_FINDING and
     # ENGINEER_HOURLY_COST_USD so a customer plugs in their own numbers; the dashboard

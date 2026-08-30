@@ -330,8 +330,10 @@ The dashboard at `http://localhost:8000` is deliberately outcome-shaped, not pro
 rate over attempted remediations, pull requests opened, and mean time from finding to
 review-ready PR.
 
-**What is it costing me?** — sessions in flight against the cap, ACUs consumed, engineer
-hours saved (configurable cost model), and how much was escalated to a human.
+**What is it costing me?** — sessions in flight against the cap, measured Devin spend and
+cost per remediated finding, engineer hours saved (configurable cost model), and how much was
+escalated to a human. Where a number is not actually available the card says so rather than
+rendering a zero — see *What did not work* on the ACU metric.
 
 Per-finding drilldown gives status, playbook, Devin session link, PR link, duration, and
 Devin's own self-reported summary and residual risk. The control-loop log shows every
@@ -447,6 +449,12 @@ fork-workflow/
   security-scan.yml  the scheduled trigger, installed into the Superset fork
 demo/
   run_cycle.py       headless driver for the same control loop
+  render_report.py   static HTML snapshot of the dashboard
+costs/
+  session-costs.json observed Devin spend, exported from the billing UI
+Dockerfile           orchestrator + scanner image
+docker-compose.yml   orchestrator service, plus the one-shot scanner
+requirements.txt     runtime + pinned scanner toolchain
 ```
 
 ---
